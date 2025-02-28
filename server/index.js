@@ -10,7 +10,11 @@ const PORT = process.env.PORT || 3500
 
 const app = express()                           
 
-app.use(express.static(path.join(__dirname, "public")))   
+app.use(express.static(path.join(__dirname, "public")))  
+
+app.get('/', (req,res) =>{
+  res.send('app,js')
+})
 
 const expressServer = app.listen(PORT, ()=> {           
   console.log(`Listening on port: ${PORT}`)
