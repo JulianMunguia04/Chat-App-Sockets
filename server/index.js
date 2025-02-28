@@ -1,34 +1,51 @@
 import express from "express"
 import {Server} from "socket.io"
 import path from 'path'
-import {fileURLToPath} from 'url'                   //access to dirname
+import {fileURLToPath} from 'url'                   
 
-const __filename = fileURLToPath(import.meta.url)   //access to dirname
-const __dirname = path.dirname(__filename)          //acces to dirname
+const __filename = fileURLToPath(import.meta.url)   
+const __dirname = path.dirname(__filename)          
 
-const PORT = process.env.PORT || 3500             //setup contsant for port
+const PORT = process.env.PORT || 3500             
 
-const app = express()                           //express server
+const app = express()                           
 
-app.use(express.static(path.join(__dirname, "public")))   //static assets from "public"
+app.use(express.static(path.join(__dirname, "public")))   
 
-const expressServer = app.listen(PORT, ()=> {           //listen
+const expressServer = app.listen(PORT, ()=> {           
   console.log(`Listening on port: ${PORT}`)
 })  
 
-const io = new Server(expressServer,{               //create socketio server conneted to express
-  cors:{                                            //prevent unauthroized users
-    origin: process.env.NODE_ENV === "production" ? false :   //dont allow node in production
-    ["http://localhost:5500", "http://127.0.0.1:5500"]
-    // // not a cross orgin server anymore                        
+const io = new Server(expressServer,{              
+  cors:{                                            
+    origin: process.env.NODE_ENV === "production" ? false :   
+    ["http://localhost:5500", "http://127.0.0.1:5500", "http://127.0.0.1:5500/server/public/index.html"]                       
   }
 }) 
 
-io.on('connection', socket => {                         //socketio server listen for connection
-  console.log(`User ${socket.id} connected`)            //get socket id
+io.on('connection', socket => {                         
+  console.log(`User ${socket.id} connected`)  
+  
+  //upon connection => only to user
+  socket.emit('message', "Welcome to Chat App!")
+
+  //upon connetion => to all others excpet the user
+  socket.broadcast.emit('message', `User ${socket.id.substring(0,5)} connected`)
+  
+  //listen for message event
   socket.on('message', data => {
     console.log(data)
-    io.emit('message',`${socket.id.substring(0,5)}: ${data}`)   //emit "message" to all sockets 
-  })                                                            //connected adn send data
+    io.emit('message',`${socket.id.substring(0,5)}: ${data}`)   
+  })   
+  
+  //when user disconnects - to all others
+  socket.on('disconnect', ()=> {
+    socket.broadcast.emit('message', `User ${socket.id.substring(0,5)} disconnected`)
+  })
+
+  //listen for activityy
+  socket.on('activity', (name)=>{
+    socket.broadcast.emit('activity', name)
+  })
 })
 
