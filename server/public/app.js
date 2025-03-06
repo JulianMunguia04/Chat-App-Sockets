@@ -1,31 +1,69 @@
 const socket = io('ws://localhost:3500')   
 
-const activity = document.querySelector('.activity')        //get activity varible
-const msgInput = document.querySelector('input')            //make input variable global
+const msgInput = document.querySelector('#message')           
+const nameInput = document.querySelector('#name')
+const chatRoom = document.querySelector('#room')
+const activity = document.querySelector('.activity')
+const usersList = document.querySelector('.users-list')
+const roomList = document.querySelector('.room-list')
+const ChatDisplay = document.querySelector('.chat-display')
 
 function sendMessage(e){
   e.preventDefault()   
-  if (msgInput.value) {    
-    socket.emit('message', msgInput.value)       
+  if (nameInput.value && msgInput.value && chatRoom.value) {    
+    socket.emit('message', {
+      name: nameInput.value,
+      text: msgInput.value
+    })       
     input.value = ""      
   }
-  input.focus()         
+  msgInput.focus()         
 }
 
-document.querySelector('form')     
+function enterRoom(e){
+  e.preventDefault()    //dont reset the window
+  if(nameInput.value && chatRoom.value){
+    socket.emit('enterRoom', {
+      name: nameInput.value,
+      room: chatRoom.value
+    })
+  }
+}
+
+document.querySelector('.form-msg')     
   .addEventListener('submit', sendMessage)
 
+document.querySelector('.form-join')     
+  .addEventListener('submit', enterRoom)
+
+msgInput.addEventListener('keypress', ()=>{
+  socket.emit('activity', nameInput.value)
+})
 
 socket.on("message", (data) => {
   activity.textContent = ""
+  const {name, text, time} = data         //destrcuture data
   const li = document.createElement('li')
-  li.textContent = data
-  document.querySelector('ul').appendChild(li)
-}) 
+  li.className = 'post'
+  if (name === nameInput.value) li.className = 'post post--right'
+  if (name !== nameInput.value && name !== 'Admin') li.className = 'post post--left'
+  if(name !== "Admin"){
+    li.innerHTML = `<div class="poste__header ${name === 
+    nameInput.value 
+      ? "post__header--user"
+      :"post__header--reply"
+    }">
+    <span class="post__header--name">${name}</span>
+    <span class="post__header--name">${time}</span>
+    </div>
+    <div class="post__text">${text}</div>`
+  }else{
+    li.innerHTML = `<div class="post__text">${text}</div>`
+  }
+  document.querySelector('.chat-display').appendChild(li)
 
-msgInput.addEventListener('keypress', ()=>{           //msg input is having the keypress event
-  socket.emit('activity', socket.id.substring(0,5))   //emit actity event with socket id as data
-})
+  chatDisplay. scrollTop = chatDisplay.scrollHeight //scroll down as the messages are dispalyed
+}) 
 
 let activityTimer
 
@@ -38,4 +76,41 @@ socket.on('activity', (name)=>{
     activity.textContent=""
   }, 3000)
 })
+
+socket.on('userList', ({users})=>{
+  showUsers(users)
+})
+
+socket.on('roomList', ({rooms})=>{
+  showRooms(rooms)
+})
+
+function showUsers(users){
+  usersList.textContent = ''
+  if (users) {
+    usersList.innerHTML = `<em>Users in ${chatRoom.value}:>/em>`
+    users.forEach((users, i)=>{
+      usersList.textContent += `{user.name}`
+      if (users.length > 1 && i !== users.length -1){
+        usersList.textContent += ","
+      }
+    })
+  }
+}
+
+
+function showUsers(users){
+  usersList.textContent = ''
+  if (rooms) {
+    roomList.innerHTML = "<em>Acrive Rooms:</em>"
+    rooms.forEach((room, i)=>{
+      roomList.textContent += `${room}`
+      if (rooms.length > 1 && i !==room.length -1){
+        roomList.textContent += ","
+      }
+    })
+  }
+}
+
+
 
